@@ -1,18 +1,10 @@
 require('dotenv').config();
 import express from 'express';
-import mysql from 'mysql';
 import api from './api/index';
 
 const app = express();
 const router = express.Router();
-
-const { PORT, HOST, DATABASE_NAME, USER, PASSWORD } = process.env;
-const connection = mysql.createConnection({
-    host: HOST,
-    user: USER,
-    password: PASSWORD,
-    database: DATABASE_NAME,
-});
+const { PORT } = process.env;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
