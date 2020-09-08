@@ -1,38 +1,61 @@
 import pool from '../../lib/connection';
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
+const generateToken = ({ user_id, user_name }) => {
+    console.log(user_id);
+    console.log(user_name);
+    const token = jwt.sign(
+        {
+            _id: user_id,
+            username: user_name,
+        },
+        process.env.JWT_SECRET,
+        {
+            expiresIn: '3d',
+        },
+    );
+
+    return token;
+};
 export const register = async (req, res) => {
     const { userid, userpw, username } = req.body;
     pool.getConnection(async (err, con) => {
         if (err) {
             throw err;
         }
-
         const hashPw = await bcrypt.hash(userpw, 10);
-
-        const query = `insert into user (user_id, user_pw, user_name) values (?,?,?)`;
-
-        try {
-            await con.query(
-                query,
-                [userid, hashPw, username],
-                (err, result) => {
-                    if (err) {
-                        res.status(500);
-                        res.send({ msg: '회원가입실패' });
-                        return;
-                    }
-                    console.log(result);
-                    res.send({ msg: '회원가입성공' });
-                },
-            );
-        } catch (e) {
-            res.status(500);
-            res.send({ msg: '회원가입실패' });
-            console.log(e);
-        } finally {
-            con.release();
-        }
+        const selectQuery = `select seq from user where user_id = ?`;
+        const insertQuery = `insert into user (user_id, user_pw, user_name) values (?,?,?)`;
+        await con.query(selectQuery, [userid], (err, result) => {
+            // con.release();
+            if (err) {
+                con.release();
+                res.status(500);
+                res.send({ msg: '회원가입실패' });
+                return;
+            }
+            console.log(result);
+            if (result.length) {
+                res.status(409);
+                res.send({ msg: '존재하는 아이디' });
+                return;
+            } else {
+                con.query(
+                    insertQuery,
+                    [userid, hashPw, username],
+                    (err, result) => {
+                        con.release();
+                        if (err) {
+                            res.status(500);
+                            res.send({ msg: '회원가입실패' });
+                            return;
+                        }
+                        res.send({ msg: '회원가입성공' });
+                    },
+                );
+            }
+        });
     });
 };
 export const login = (req, res) => {
@@ -42,43 +65,50 @@ export const login = (req, res) => {
             throw err;
         }
         const query = `select * from user where user_id = ?`;
-
-        try {
-            await con.query(query, [userid], async (err, result) => {
-                if (err) {
-                    console.log(err);
-                    res.status(500);
-                    res.send({ msg: '로그인실패' });
-                    return;
-                }
-                if (!result.length) {
-                    res.send({ msg: '해당 아이디 없음' });
-                    return;
-                }
-
-                const { user_id, user_pw, user_name } = result[0];
-
-                const checkPw = await bcrypt.compare(userpw, user_pw);
-                if (!checkPw) {
-                    res.send({ msg: '비밀번호가 다릅니다.' });
-                    return;
-                }
-                res.send({ msg: '로그인성공', user: { user_id, user_name } });
-            });
-        } catch (e) {
-            res.status(500);
-            res.send({ msg: '회원가입실패' });
-            console.log(e);
-        } finally {
+        await con.query(query, [userid], async (err, result) => {
             con.release();
-        }
+            if (err) {
+                console.log(err);
+                res.status(500);
+                res.send({ msg: '로그인실패' });
+                return;
+            }
+            if (!result.length) {
+                res.send({ msg: '해당 아이디 없음' });
+                return;
+            }
+
+            const { user_id, user_pw, user_name } = result[0];
+
+            const checkPw = await bcrypt.compare(userpw, user_pw);
+            if (!checkPw) {
+                res.send({ msg: '비밀번호가 다릅니다.' });
+                return;
+            }
+            const user = {
+                user_id,
+                user_name,
+            };
+            const token = generateToken(user);
+            res.cookie('access_token', token, {
+                maxAge: 1000 * 60 * 60 * 24 * 7,
+                httpOnly: true,
+            });
+            res.send({ msg: '로그인성공', user });
+        });
     });
 };
 export const logout = (req, res) => {
-    console.log('logout');
-    res.send('logout');
+    res.clearCookie('access_token');
+    res.status(204);
+    res.send({ msg: '로그아웃' });
 };
 export const check = (req, res) => {
-    console.log('check');
-    res.send('check');
+    console.log(res.locals);
+    const { user } = res.locals;
+    if (!user) {
+        res.status(401);
+        return;
+    }
+    res.send({ user });
 };

@@ -1,5 +1,3 @@
-import connection from '../../lib/connection';
-
 export const list = (req, res) => {
     console.log('list');
     res.send('list');
