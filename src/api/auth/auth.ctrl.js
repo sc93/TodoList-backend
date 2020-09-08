@@ -2,13 +2,11 @@ import pool from '../../lib/connection';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
-const generateToken = ({ user_id, user_name }) => {
-    console.log(user_id);
-    console.log(user_name);
+const generateToken = ({ seq, user_id }) => {
     const token = jwt.sign(
         {
-            _id: user_id,
-            username: user_name,
+            _id: seq,
+            userid: user_id,
         },
         process.env.JWT_SECRET,
         {
@@ -27,6 +25,7 @@ export const register = async (req, res) => {
         const hashPw = await bcrypt.hash(userpw, 10);
         const selectQuery = `select seq from user where user_id = ?`;
         const insertQuery = `insert into user (user_id, user_pw, user_name) values (?,?,?)`;
+
         await con.query(selectQuery, [userid], (err, result) => {
             // con.release();
             if (err) {
@@ -35,7 +34,6 @@ export const register = async (req, res) => {
                 res.send({ msg: '회원가입실패' });
                 return;
             }
-            console.log(result);
             if (result.length) {
                 res.status(409);
                 res.send({ msg: '존재하는 아이디' });
@@ -68,7 +66,6 @@ export const login = (req, res) => {
         await con.query(query, [userid], async (err, result) => {
             con.release();
             if (err) {
-                console.log(err);
                 res.status(500);
                 res.send({ msg: '로그인실패' });
                 return;
@@ -78,7 +75,7 @@ export const login = (req, res) => {
                 return;
             }
 
-            const { user_id, user_pw, user_name } = result[0];
+            const { seq, user_id, user_pw, user_name } = result[0];
 
             const checkPw = await bcrypt.compare(userpw, user_pw);
             if (!checkPw) {
@@ -86,8 +83,8 @@ export const login = (req, res) => {
                 return;
             }
             const user = {
+                seq,
                 user_id,
-                user_name,
             };
             const token = generateToken(user);
             res.cookie('access_token', token, {
@@ -104,7 +101,6 @@ export const logout = (req, res) => {
     res.send({ msg: '로그아웃' });
 };
 export const check = (req, res) => {
-    console.log(res.locals);
     const { user } = res.locals;
     if (!user) {
         res.status(401);

@@ -8,7 +8,7 @@ const jwtMiddleware = async (req, res, next) => {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         res.locals.user = {
             _id: decoded._id,
-            username: decoded.username,
+            userid: decoded.userid,
         };
         return next();
     } catch (error) {
