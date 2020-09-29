@@ -16,45 +16,51 @@ const generateToken = ({ seq, user_id }) => {
 
     return token;
 };
-export const register = async (req, res) => {
+export const register = (req, res) => {
     const { userid, userpw, username } = req.body;
-    pool.getConnection(async (err, con) => {
-        if (err) {
-            throw err;
-        }
-        const hashPw = await bcrypt.hash(userpw, 10);
-        const selectQuery = `select seq from user where user_id = ?`;
-        const insertQuery = `insert into user (user_id, user_pw, user_name) values (?,?,?)`;
-
-        await con.query(selectQuery, [userid], (err, result) => {
-            // con.release();
+    try {
+        pool.getConnection(async (err, con) => {
             if (err) {
-                con.release();
-                res.status(500);
-                res.send({ msg: '회원가입실패' });
-                return;
+                throw err;
             }
-            if (result.length) {
-                res.status(409);
-                res.send({ msg: '존재하는 아이디' });
-                return;
-            } else {
-                con.query(
-                    insertQuery,
-                    [userid, hashPw, username],
-                    (err, result) => {
-                        con.release();
-                        if (err) {
-                            res.status(500);
-                            res.send({ msg: '회원가입실패' });
-                            return;
-                        }
-                        res.send({ msg: '회원가입성공' });
-                    },
-                );
-            }
+
+            const hashPw = await bcrypt.hash(userpw, 10);
+            const selectQuery = `select seq from user where user_id = ?`;
+            const insertQuery = `insert into user (user_id, user_pw, user_name) values (?,?,?)`;
+
+            con.query(selectQuery, [userid], (err, result) => {
+                // con.release();
+                if (err) {
+                    con.release();
+                    res.status(500);
+                    res.send({ msg: '회원가입실패' });
+                    return;
+                }
+                if (result.length) {
+                    res.status(409);
+                    res.send({ msg: '존재하는 아이디' });
+                    return;
+                } else {
+                    console.log(userid, hashPw, username);
+                    con.query(
+                        insertQuery,
+                        [userid, hashPw, username],
+                        (err, result) => {
+                            con.release();
+                            if (err) {
+                                res.status(500);
+                                res.send({ msg: '회원가입실패' });
+                                return;
+                            }
+                            res.send({ msg: '회원가입성공' });
+                        },
+                    );
+                }
+            });
         });
-    });
+    } catch (error) {
+        console.log(error);
+    }
 };
 export const login = (req, res) => {
     const { userid, userpw } = req.body;
@@ -71,6 +77,7 @@ export const login = (req, res) => {
                 return;
             }
             if (!result.length) {
+                res.status(401);
                 res.send({ msg: '해당 아이디 없음' });
                 return;
             }

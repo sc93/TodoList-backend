@@ -8,6 +8,6 @@ auth.post('/login', authCtrl.login);
 
 auth.post('/logout', authCtrl.logout);
 
-auth.post('/check', authCtrl.check);
+auth.get('/check', authCtrl.check);
 
 export default auth;
