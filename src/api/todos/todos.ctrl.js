@@ -1,20 +1,20 @@
 import pool from '../../lib/connection';
 
 export const list = (req, res) => {
-    const { user } = res.locals;
+    const { _id } = req.query;
     pool.getConnection(async (err, con) => {
         if (err) {
             throw err;
         }
         const query = `select * from todo where writer_id = ?`;
-        await con.query(query, [user._id], (err, result) => {
+        await con.query(query, [_id], (err, result) => {
             con.release();
             if (err) {
                 res.status(500);
                 res.send({ msg: '실패' });
                 return;
             }
-            const list = result.map(
+            const todos = result.map(
                 ({ todo_id, title, body, todo_date, writer_date }) => ({
                     todo_id,
                     title,
@@ -23,7 +23,7 @@ export const list = (req, res) => {
                     writer_date,
                 }),
             );
-            res.send({ list });
+            res.send({ todos });
         });
     });
     // res.send('list');
