@@ -1,5 +1,12 @@
 import pool from '../../lib/connection';
-
+import _ from 'lodash';
+const getDateString = (d) => {
+    const year = d.getFullYear();
+    const tMonth = d.getMonth() + 1;
+    const month = tMonth < 10 ? '0' + tMonth : tMonth;
+    const date = d.getDate();
+    return year + '' + month + '' + date;
+};
 export const list = (req, res) => {
     const { _id } = req.query;
     pool.getConnection(async (err, con) => {
@@ -19,11 +26,26 @@ export const list = (req, res) => {
                     todo_id,
                     title,
                     body,
-                    todo_date,
-                    writer_date,
+                    todo_date: getDateString(todo_date),
+                    writer_date: getDateString(writer_date),
+                    _month: getDateString(todo_date).slice(0, 6),
                 }),
             );
-            res.send({ todos });
+            // console.log(todos);
+            const data = _.chain(todos)
+                .groupBy('_month')
+                .map((v, key) => ({
+                    date: key,
+                    list: v,
+                }))
+                .value();
+
+            console.log(data);
+            console.log('-------------------');
+            console.log(_.orderBy(data, 'date', 'desc'));
+            // console.log(todos);
+
+            res.send(_.orderBy(data, 'date', 'desc'));
         });
     });
     // res.send('list');
