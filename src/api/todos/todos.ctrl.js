@@ -31,7 +31,6 @@ export const list = (req, res) => {
                     _month: getDateString(todo_date).slice(0, 6),
                 }),
             );
-            // console.log(todos);
             const data = _.chain(todos)
                 .groupBy('_month')
                 .map((v, key) => ({
@@ -39,11 +38,6 @@ export const list = (req, res) => {
                     list: v,
                 }))
                 .value();
-
-            console.log(data);
-            console.log('-------------------');
-            console.log(_.orderBy(data, 'date', 'desc'));
-            // console.log(todos);
 
             res.send(_.orderBy(data, 'date', 'desc'));
         });
@@ -83,10 +77,14 @@ export const read = (req, res) => {
             if (err) {
                 console.log(err);
                 res.status(500);
-                res.send({ msg: '글쓰기실패' });
+                res.send({ msg: '읽기실패' });
                 return;
             }
-            res.send({ todo: result[0] });
+            res.send({
+                ...result[0],
+                writer_date: getDateString(result[0].writer_date),
+                todo_date: getDateString(result[0].todo_date),
+            });
         });
     });
 };
