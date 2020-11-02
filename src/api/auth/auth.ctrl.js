@@ -41,7 +41,6 @@ export const register = (req, res) => {
                     res.send({ msg: '존재하는 아이디' });
                     return;
                 } else {
-                    console.log(userid, hashPw, username);
                     con.query(
                         insertQuery,
                         [userid, hashPw, username],
@@ -95,7 +94,7 @@ export const login = (req, res) => {
             };
             const token = generateToken(user);
             res.cookie('access_token', token, {
-                maxAge: 1000 * 60 * 60 * 24 * 7,
+                maxAge: 1000 * 60 * 60 * 24 * 2,
                 httpOnly: true,
             });
             res.send({ msg: '로그인성공', user });
@@ -109,6 +108,7 @@ export const logout = (req, res) => {
 };
 export const check = (req, res) => {
     const { user } = res.locals;
+    console.log(user);
     if (!user) {
         res.status(401);
         return;

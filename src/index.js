@@ -12,25 +12,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
+app.use(jwtMiddleware);
+router.use('/api', api);
+app.use(router);
 app.use(
     '/thumbnail',
     express.static(path.join(__dirname + '/upload/thumbnail')),
 );
-app.use(jwtMiddleware);
-router.use('/api', api);
-app.use(router);
-/*
-test code
-try {
-    connection.connect();
-    connection.query('select * from user', (error, rows, fields) => {
-        console.log('user : ', rows);
-    });
-    connection.end();
-} catch (error) {
-    console.log(error);
-}
-*/
 app.listen(PORT || 4000, () => {
     console.log('listening');
 });

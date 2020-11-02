@@ -60,7 +60,7 @@ export const write = (req, res) => {
         }
         const { _id } = res.locals.user;
         const { title, body, todo_date } = req.body;
-        const { filename } = req.file;
+        const filename = req.file ? req.file.filename : 'defaultImg.png';
         const query = `insert into todo(title,body,todo_date,writer_id,thumbnail) values(?,?,?,?,?);`;
         await con.query(
             query,
